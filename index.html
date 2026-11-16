@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RB EVENT</title>
+<style>
+:root{--bg:#f4f8ff;--c:#fff;--t:#10243f;--m:#5b6f8a;--p:#1565c0;--l:#d6e2f3;--g:#1b8a3a;--r:#c62828}
+
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Arial,sans-serif;background:var(--bg);color:var(--t)}
+header{position:sticky;top:0;z-index:8;background:var(--p);color:#fff;display:flex;align-items:center;gap:8px;padding:8px 10px}header b{flex:1;text-align:center;font-size:18px;letter-spacing:1px}
+header button{background:rgba(255,255,255,.18);color:#fff;border:0;padding:8px 11px;border-radius:8px;font-size:14px;cursor:pointer;position:relative}.ic{font-size:20px;padding:6px 12px}.bd{position:absolute;top:-6px;inset-inline-end:-6px;background:#e53935;color:#fff;border-radius:10px;font-size:11px;padding:1px 6px}.dd{position:fixed;top:54px;inset-inline:8px;max-width:340px;background:#fff;border:1px solid var(--l);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:9;padding:6px;max-height:75vh;overflow:auto}.dd.rt{inset-inline-start:auto}.dd button{display:block;width:100%;text-align:start;background:transparent;color:var(--t);border:0;padding:11px;font-size:15px;cursor:pointer}.dd button.on{background:#e3eefc;color:var(--p);font-weight:700}.dd .s{padding-inline-start:28px;font-size:14px}.ov{position:fixed;inset:0;z-index:7}#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#10243f;color:#fff;padding:8px 16px;border-radius:20px;z-index:100;max-width:92vw;text-align:center;font-size:14px;display:none}
+nav button.on{background:rgba(0,0,0,.25);font-weight:700}
+main{padding:12px;max-width:1000px;margin:auto}
+.sub{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.sub button,.btn{border:1px solid var(--p);background:var(--c);color:var(--p);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+.sub button.on,.btn.p{background:var(--p);color:#fff}.btn.r{border-color:var(--r);color:var(--r)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.card{background:var(--c);border:1px solid var(--l);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:4px}
+.card img,.ph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;background:var(--l)}
+.ph{display:grid;place-items:center;font-size:32px}
+.sm{font-size:12px;color:var(--m)}.g{color:var(--g);font-weight:600}
+.fl{position:relative;overflow:hidden;text-align:center;display:inline-block}.fl input{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:0;margin:0;padding:0;cursor:pointer}
+input,select{width:100%;padding:9px;border:1px solid var(--l);border-radius:8px;background:var(--c);color:var(--t);font-size:15px;margin:3px 0}
+.box{background:var(--c);border:1px solid var(--l);border-radius:12px;padding:14px;margin:10px 0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:9;padding:12px}
+.modal .box{width:100%;max-width:420px;max-height:92vh;overflow:auto}
+table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid var(--l);text-align:start;font-size:14px}
+.sc{overflow-x:auto}.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.row>*{flex:1}
+#inv{display:none}
+@media print{#app,.modal,#toast{display:none!important}#inv{display:block;color:#000;background:#fff;padding:20px}#inv *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.lg{height:38px;width:38px;border-radius:50%;vertical-align:middle;display:inline-block}header b{cursor:pointer}
+.kp{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.kc{background:var(--c);border:1px solid var(--l);border-radius:12px;padding:12px}.kc b{display:block;font-size:20px;color:var(--p)}.kc b.g{color:var(--g)}
+.bars{display:flex;gap:6px;align-items:flex-end;height:130px;margin-top:8px}.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;text-align:center;font-size:11px;color:var(--m)}.bars i{display:block;background:var(--p);border-radius:4px 4px 0 0;min-height:2px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.tile{background:var(--c);border:1px solid var(--l);border-radius:14px;padding:16px 8px;text-align:center;cursor:pointer;font-size:15px;color:var(--t)}.tile span{display:block;font-size:34px;margin-bottom:4px}
+</style><meta name="theme-color" content="#1565c0"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
+</head><body>
+<div id="app"></div><div id="inv"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ====== 1) COLLEZ ICI LA CONFIG DE VOTRE PROJET FIREBASE ====== */
+const FB={apiKey:"",authDomain:"",projectId:"",appId:""};
+/* Si apiKey est vide, l'app fonctionne en local (navigateur) */
+
+const LOGO="data:image/jpeg;base64,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";
+{const l=document.createElement('link');l.rel='icon';l.href=LOGO;document.head.appendChild(l)}
+const useFB=!!FB.apiKey;let db;
+const $=i=>document.getElementById(i);
+window.alert=m=>toast(m,3500);
+function ask(msg,fn){const m=document.createElement('div');m.className='modal';m.style.zIndex=30;m.innerHTML=`<div class=box><p style="font-size:17px">${msg}</p><div class=row><button class=btn id=cn>${t('cancel')}</button><button class="btn r" id=cy>${t('del')}</button></div></div>`;document.body.appendChild(m);m.querySelector('#cn').onclick=()=>m.remove();m.querySelector('#cy').onclick=async()=>{m.remove();try{await fn()}catch(e){toast(e.message,4000)}}}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today=()=>new Date().toLocaleDateString('en-CA');
+const D={items:[],sales:[],users:[]};
+const S={user:null,cat:'epice',sub:null,view:'home',cart:[],lang:localStorage.b_lang||'fr',from:today(),to:today(),draft:null,disc:0,client:''};
+
+const CATS=[
+{id:'epice',fr:'Épice',ar:'التوابل'},{id:'fakia',fr:'Fakia',ar:'الفاكية'},{id:'herbe',fr:"L'herbe",ar:'الأعشاب'},
+{id:'anniv',fr:'Anniversaires',ar:'أعياد الميلاد'},
+{id:'mariage',fr:'Mariage',ar:'العرس',subs:[['henna','Henna','الحنة'],['fiancailles','Fiançailles','الخطوبة'],['mariage','Mariage','العرس']]},
+{id:'bapteme',fr:'Baptême',ar:'السبوع'},{id:'fete',fr:'Article de fête',ar:'لوازم الحفلات'},
+{id:'confiserie',fr:'Confiserie',ar:'الحلويات',subs:[['dragee','Dragée','الدراجي'],['bonbon','Bonbon','البونبون'],['chocolat','Chocolat','الشوكولا'],['nougat','Nougat','النوݣا']]}];
+const TR={
+fr:{cam:'Photo',gal:'Galerie',add:'Ajouter',name:'Nom',cost:'Prix de revient',price:'Prix de vente',profit:'Bénéfice',save:'Enregistrer',cancel:'Annuler',cart:'Panier',report:'Rapport',users:'Utilisateurs',logout:'Déconnexion',toCart:'Au panier',empty:'Aucun article',client:'Client',discount:'Remise',total:'Total',validate:'Valider et imprimer',from:'Du',to:'Au',day:'Jour',nb:'Ventes',export:'Télécharger Excel',login:'Connexion',user:'Identifiant',pass:'Mot de passe',role:'Rôle',admin:'Admin',seller:'Vendeur',del:'Supprimer',edit:'Modifier',invoice:'Facture',qty:'Qté',unit:'P.U.',mkAdmin:'Créer le compte Admin',print:'Imprimer',full:'Nom complet',shop:'Nom du magasin / adresse',wrong:'Identifiant ou mot de passe incorrect',sure:'Confirmer ?',cartEmpty:'Panier vide',history:'Factures',categories:'Catégories',cashier:'Encaisser',perf:'Performance des vendeurs',ca:"Chiffre d'affaires",embed:"Aperçu intégré : impression et PDF peuvent être bloqués. Ouvrez l'application dans le navigateur (Chrome / Safari).",close:'Fermer',thanks:'Merci de votre confiance',stock:'Stock',pcs:'pièces',all:'Toutes',lowstock:'Stock bas',hello:'Bonjour',today:"Aujourd'hui",month:'Ce mois',week:'7 derniers jours',top:'Meilleurs articles du mois',last:'Dernières ventes',articles:'Articles'},
+ar:{cam:'صوّر',gal:'المعرض',add:'زيد',name:'السمية',cost:'ثمن الشراء',price:'ثمن البيع',profit:'الربح',save:'سجّل',cancel:'إلغاء',cart:'السلة',report:'التقرير',users:'المستخدمين',logout:'خروج',toCart:'زيد للسلة',empty:'ما كاين والو',client:'الكليان',discount:'التخفيض',total:'المجموع',validate:'أكّد و طبع',from:'من',to:'إلى',day:'النهار',nb:'عدد المبيعات',export:'تحميل Excel',login:'دخول',user:'اسم المستخدم',pass:'كلمة السر',role:'الصلاحية',admin:'أدمن',seller:'بائع',del:'مسح',edit:'تعديل',invoice:'فاتورة',qty:'الكمية',unit:'الثمن',mkAdmin:'إنشاء حساب الأدمن',print:'طبع',full:'الاسم الكامل',shop:'اسم المحل / العنوان',wrong:'المعلومات غالطة',sure:'متأكد؟',cartEmpty:'السلة خاوية',history:'الفواتير',categories:'الأصناف',cashier:'خلّص',perf:'أداء البائعين',ca:'رقم المعاملات',embed:'هاد المعاينة كتمنع الطبع و PDF. حل التطبيق فالمتصفح (Chrome / Safari).',close:'سدّ',thanks:'شكرا على ثقتكم',stock:'المخزون',pcs:'قطع',all:'الكل',lowstock:'مخزون قليل',hello:'مرحبا',today:'اليوم',month:'هاد الشهر',week:'آخر 7 أيام',top:'أحسن السلع ديال الشهر',last:'آخر المبيعات',articles:'السلع'}};
+const t=k=>TR[S.lang][k]||k;
+const lab=o=>o[S.lang];
+const isA=()=>S.user&&S.user.role=='admin';
+const dh=n=>(Math.round(n*100)/100).toFixed(2)+' DH';
+const shop=()=>localStorage.b_shop||'RB EVENT';
+const sname=s=>s.sellerName||(D.users.find(u=>u.username==s.user)||{}).name||s.user||'-';
+const isKg=i=>['epice','fakia','herbe'].includes(i.cat);
+const sfx=i=>isKg(i)?' / kg':'';
+const ll=l=>l.u=='kg'?l.p*l.q/1000:l.p*l.q;
+const lc=l=>l.u=='kg'?l.c*l.q/1000:l.c*l.q;
+
+/* ---------- Données ---------- */
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+async function put(c,o){o.id=o.id||uid();const i=D[c].findIndex(x=>x.id==o.id);i<0?D[c].push(o):D[c][i]=o;
+ if(useFB)await db.collection(c).doc(o.id).set(o);else localStorage['b_'+c]=JSON.stringify(D[c]);return o}
+async function rm(c,id){D[c]=D[c].filter(x=>x.id!=id);
+ if(useFB)await db.collection(c).doc(id).delete();else localStorage['b_'+c]=JSON.stringify(D[c])}
+async function loadAll(){for(const c in D){
+ if(useFB){const s=await db.collection(c).get();D[c]=s.docs.map(d=>d.data())}
+ else D[c]=JSON.parse(localStorage['b_'+c]||'[]')}}
+async function hash(p){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('bq1'+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return btoa(p)}}
+function shrink(f){return new Promise(res=>{const fb=()=>{if(f.size>900000){alert('Photo trop lourde / الصورة كبيرة بزاف');return res('')}const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>res('');r.readAsDataURL(f)};
+ try{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{try{const k=Math.min(1,500/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.65))}catch(e){fb()}};im.onerror=fb;im.src=u}catch(e){fb()}})}
+
+/* ---------- Auth ---------- */
+async function doLogin(){const u=$('lu').value.trim().toLowerCase(),h=await hash($('lp').value);
+ const x=D.users.find(a=>a.username==u&&a.hash==h);if(!x)return alert(t('wrong'));
+ S.user=x;sessionStorage.b_sess=x.id;S.view='home';r()}
+async function mkAdmin(){const u=$('lu').value.trim().toLowerCase(),p=$('lp').value;if(!u||p.length<4)return alert('4+');
+ await put('users',{username:u,name:$('ln').value||u,role:'admin',hash:await hash(p)});await doLogin()}
+function logout(){delete sessionStorage.b_sess;S.user=null;S.cart=[];S.menu=null;S.cartOpen=false;r()}
+function authBox(first){return `<main><div class=box style="max-width:380px;margin:12vh auto"><div style="text-align:center"><img src="${LOGO}" style="width:120px;height:120px;border-radius:50%" alt="RB EVENT"></div>
+${first?`<input id=ln placeholder="${t('full')}">`:''}<input id=lu placeholder="${t('user')}" autocapitalize=off><input id=lp type=password placeholder="${t('pass')}">
+<button class="btn p" style="width:100%" onclick="${first?'mkAdmin()':'doLogin()'}">${first?t('mkAdmin'):t('login')}</button>
+<p style="text-align:center"><button class=btn onclick="toggleLang()">${S.lang=='fr'?'الدارجة':'Français'}</button></p></div></main>`}
+function toggleLang(){S.lang=S.lang=='fr'?'ar':'fr';localStorage.b_lang=S.lang;r()}
+
+/* ---------- Navigation ---------- */
+function go(v,c,sb){S.view=v;S.menu=null;if(c){S.cat=c;S.sub=sb||null}r()}
+function catDD(){const b=(on,a,txt,cl)=>`<button class="${cl||''} ${on?'on':''}" onclick="${a}">${txt}</button>`;
+ return '<div class=ov onclick="S.menu=null;r()"></div><div class=dd>'+CATS.map(c=>b(S.view=='cat'&&S.cat==c.id&&!c.subs,`go('cat','${c.id}'${c.subs?`,'${c.subs[0][0]}'`:''})`,lab(c)+(c.subs?' ▾':''))+(c.subs?c.subs.map(s=>b(S.view=='cat'&&S.cat==c.id&&S.sub==s[0],`go('cat','${c.id}','${s[0]}')`,'• '+(S.lang=='fr'?s[1]:s[2]),'s')).join(''):'')).join('')+'</div>'}
+function moreDD(){const b=(a,txt)=>`<button onclick="${a}">${txt}</button>`;
+ return '<div class=ov onclick="S.menu=null;r()"></div><div class="dd rt">'+(isA()?b("go('stk')",'📦 '+t('stock'))+b("go('rep')",'📊 '+t('report'))+b("go('usr')",'👥 '+t('users')):'')+b('S.menu=null;toggleLang()','🌐 '+(S.lang=='fr'?'دارجة':'Français'))+b('logout()','⏻ '+t('logout'))+'</div>'}
+function hdr(){return `<header><button onclick="S.menu=S.menu=='cat'?null:'cat';r()">☰ ${S.view=='cat'?lab(CATS.find(c=>c.id==S.cat)):t('categories')} ▾</button><b onclick="go('home')"><img class=lg src="${LOGO}" alt="RB EVENT"></b><button class=ic onclick="S.cartOpen=true;S.menu=null;r()">🛒<span class=bd id=cb>${S.cart.length}</span></button><button class=ic onclick="S.menu=S.menu=='more'?null:'more';r()">⋮</button></header>`+(S.menu=='cat'?catDD():S.menu=='more'?moreDD():'')}
+function cartPanel(){return `<div class=modal onclick="if(event.target==this){S.cartOpen=false;r()}"><div class=box style="max-width:560px"><div class=row><h2 style="margin:0;flex:3">🛒 ${t('cart')}</h2><button class=btn style="flex:0 0 auto" onclick="S.cartOpen=false;r()">✕</button></div>${cartInner()}</div></div>`}
+function toast(m,ms){let e=$('toast');if(!e){e=document.createElement('div');e.id='toast';document.body.appendChild(e)}e.textContent=m;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',ms||1100)}
+
+/* ---------- Articles ---------- */
+const EM={epice:'🌶️',fakia:'🥜',herbe:'🌿',anniv:'🎂',mariage:'💍',bapteme:'👶',fete:'🎉',confiserie:'🍬'};
+function homeView(){const td=today(),mo=td.slice(0,7),sum=(L,k)=>L.reduce((a,x)=>a+x[k],0);
+ let h=`<h2>${t('hello')} ${esc(S.user.name)} 👋</h2>`;
+ if(isA()){
+  const sd=D.sales.filter(x=>x.day==td),sm=D.sales.filter(x=>x.day.slice(0,7)==mo);
+  const days=[...Array(7)].map((_,k)=>{const d=new Date();d.setDate(d.getDate()-6+k);const key=d.toLocaleDateString('en-CA');return{key,v:sum(D.sales.filter(x=>x.day==key),'total')}});
+  const mx=Math.max(1,...days.map(d=>d.v)),top={};
+  sm.forEach(x=>x.lines.forEach(l=>{top[l.n]=(top[l.n]||0)+ll(l)}));
+  const tl=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const kc=(l,v,c)=>`<div class=kc><span class=sm>${l}</span><b${c?' class=g':''}>${v}</b></div>`;
+  h+=`<div class=kp>${kc(t('today')+' — '+t('total'),dh(sum(sd,'total')))}${kc(t('today')+' — '+t('profit'),dh(sum(sd,'profit')),1)}${kc(t('today')+' — '+t('nb'),sd.length)}${kc(t('month')+' — '+t('total'),dh(sum(sm,'total')))}${kc(t('month')+' — '+t('profit'),dh(sum(sm,'profit')),1)}${kc(t('articles'),D.items.length)}${kc('⚠ '+t('lowstock'),D.items.filter(i=>typeof i.stock=='number'&&i.stock<=(i.min||0)).length)}</div>
+  <div class=box><b>${t('week')}</b><div class=bars>${days.map(d=>`<div title="${dh(d.v)}"><i style="height:${Math.round(d.v/mx*100)}%"></i><span>${d.key.slice(8)}</span></div>`).join('')}</div></div>
+  <div class=row style="align-items:flex-start"><div class=box><b>${t('top')}</b><table>${tl.map(x=>`<tr><td>${esc(x[0])}</td><td>${dh(x[1])}</td></tr>`).join('')||`<tr><td class=sm>${t('empty')}</td></tr>`}</table></div>
+  <div class=box><b>${t('last')}</b><table>${[...D.sales].sort((a,b)=>a.date<b.date?1:-1).slice(0,5).map(x=>`<tr><td>N°${x.no}</td><td>${esc(x.client)}</td><td>${dh(x.total)}</td></tr>`).join('')||`<tr><td class=sm>${t('empty')}</td></tr>`}</table></div></div>
+  <div class=row><button class="btn p" onclick="go('stk')">📦 ${t('stock')}</button><button class="btn p" onclick="go('rep')">📊 ${t('report')}</button><button class="btn p" onclick="go('usr')">👥 ${t('users')}</button></div>`}
+ return h+`<h3>${t('categories')}</h3><div class=tiles>${CATS.map(c=>`<button class=tile onclick="go('cat','${c.id}'${c.subs?`,'${c.subs[0][0]}'`:''})"><span>${EM[c.id]}</span>${lab(c)}</button>`).join('')}</div>`}
+function catView(){const c=CATS.find(x=>x.id==S.cat);if(c.subs&&!S.sub)S.sub=c.subs[0][0];
+ const L=D.items.filter(i=>i.cat==c.id&&(!c.subs||i.sub==S.sub));
+ return `<h2>${lab(c)}</h2>
+ ${c.subs?'<div class=sub>'+c.subs.map(s=>`<button class="${S.sub==s[0]?'on':''}" onclick="S.sub='${s[0]}';r()">${S.lang=='fr'?s[1]:s[2]}</button>`).join('')+'</div>':''}
+ <div class=row><label class="btn p fl">📷 ${t('cam')}<input type=file accept="image/*" capture=environment onchange="pick(this)"></label><label class="btn p fl">🖼 ${t('gal')}<input type=file accept="image/*" onchange="pick(this)"></label><button class=btn onclick="openForm()">➕ ${t('add')}</button></div>
+ 
+ <div class=grid>${L.map(i=>`<div class=card>${i.img?`<img src="${i.img}">`:'<div class=ph>📦</div>'}<b>${esc(i.name)}</b>
+ <span>${dh(i.price)}${sfx(i)}</span>${typeof i.stock=='number'?`<span class=sm style="${i.stock<=0?'color:var(--r)':''}">${t('stock')}: ${i.stock}${isKg(i)?' kg':''}</span>`:''}${isA()?`<span class=sm>${t('cost')}: ${dh(i.cost)}${sfx(i)}</span><span class="sm g">${t('profit')}: ${dh(i.price-i.cost)}${sfx(i)}</span>`:''}
+ <button class="btn p" style="font-size:20px" title="${t('toCart')}" onclick="askQty('${i.id}')">🛒+</button>
+ ${isA()?`<div class=row><button class=btn onclick="openForm('${i.id}')">✏️</button><button class="btn r" onclick="delItem('${i.id}')">🗑</button></div>`:''}</div>`).join('')||`<p class=sm>${t('empty')}</p>`}</div>`}
+async function pick(el){const f=el.files[0];if(!f)return;const img=await shrink(f);el.value='';if(img)openForm(null,img);else alert('Photo non chargée / الصورة ما تحمّلاتش')}
+function openForm(id,img){S.draft=id?{...D.items.find(i=>i.id==id)}:{cat:S.cat,sub:S.sub,name:'',cost:'',price:'',img:img||''};modal()}
+function modal(){const d=S.draft;const m=document.createElement('div');m.className='modal';m.id='mod';
+ m.innerHTML=`<div class=box><img id=pv src="${d.img||''}" style="width:100%;border-radius:8px;${d.img?'':'display:none'}">
+ <div class=row><label class="btn fl">📷 ${t('cam')}<input type=file accept="image/*" capture=environment onchange="chImg(this)"></label><label class="btn fl">🖼 ${t('gal')}<input type=file accept="image/*" onchange="chImg(this)"></label></div>
+ 
+ <label>${t('name')}</label><input id=fn value="${esc(d.name)}">
+ <label>${t('cost')} (DH${isKg(d)?'/kg':''})</label><input id=fc type=number step=0.01 inputmode=decimal value="${d.cost}" oninput="pf()">
+ <label>${t('price')} (DH${isKg(d)?'/kg':''})</label><input id=fp type=number step=0.01 inputmode=decimal value="${d.price}" oninput="pf()">
+ <label>${t('stock')} (${isKg(d)?'kg':t('pcs')})</label><input id=fs type=number step=any inputmode=decimal value="${typeof d.stock=='number'?d.stock:''}"><p><b>${t('profit')}: <span id=fb class=g>${dh((d.price||0)-(d.cost||0))}</span></b></p>
+ <div class=row><button class=btn onclick="$('mod').remove()">${t('cancel')}</button><button class="btn p" onclick="saveItem()">${t('save')}</button></div></div>`;
+ document.body.appendChild(m)}
+function pf(){$('fb').textContent=dh((+$('fp').value||0)-(+$('fc').value||0))}
+async function chImg(el){const f=el.files[0];if(!f)return;const img=await shrink(f);el.value='';if(!img)return alert('Photo non chargée / الصورة ما تحمّلاتش');S.draft.img=img;const p=$('pv');p.src=img;p.style.display='block'}
+async function saveItem(){const d=S.draft;d.name=$('fn').value.trim();d.cost=+$('fc').value||0;d.price=+$('fp').value||0;d.u=isKg(d)?'kg':'pc';const sv=$('fs').value;if(sv!=='')d.stock=+sv;if(!d.name)return;
+ await put('items',d);$('mod').remove();r()}
+function delItem(id){const i=D.items.find(x=>x.id==id);ask(`${t('del')} « ${esc(i?i.name:'')} » ?`,async()=>{await rm('items',id);r()})}
+
+/* ---------- Panier / facture ---------- */
+function askQty(id){const i=D.items.find(x=>x.id==id),kg=isKg(i);S.qd={id,q:kg?1000:1,kg,i};
+ const m=document.createElement('div');m.className='modal';m.id='qm';
+ m.innerHTML=`<div class=box>${i.img?`<img src="${i.img}" style="width:100%;max-height:220px;object-fit:cover;border-radius:8px">`:''}<h3 style="margin:8px 0">${esc(i.name)}</h3>
+ <p>${t('price')}: <b>${dh(i.price)}${sfx(i)}</b></p>${typeof i.stock=='number'?`<p class=sm id=qs>${t('stock')}: ${i.stock}${kg?' kg':''}</p>`:''}<label>${t('qty')} ${kg?'(g)':''}</label>
+ <div class=row><button class=btn onclick="qstep(-1)">−</button><input id=qv type=number inputmode=decimal value="${S.qd.q}" oninput="qdv()"><button class=btn onclick="qstep(1)">+</button></div>
+ ${kg?`<div class=row>${[250,500,1000,2000].map(g=>`<button class=btn onclick="qset(${g})">${g>=1000?g/1000+' kg':g+' g'}</button>`).join('')}</div>`:''}
+ <h2>${t('total')}: <span id=qt></span></h2>
+ <div class=row><button class=btn onclick="$('qm').remove()">${t('cancel')}</button><button class="btn p" onclick="qok()">🛒 ${t('toCart')}</button></div></div>`;
+ document.body.appendChild(m);qdv()}
+function qdv(){const d=S.qd;d.q=+$('qv').value||0;const e=$('qs');if(e)e.style.color=(d.kg?d.q/1000:d.q)>d.i.stock?'var(--r)':'';$('qt').textContent=dh(d.kg?d.i.price*d.q/1000:d.i.price*d.q)}
+function qstep(k){$('qv').value=Math.max(0,(+$('qv').value||0)+k*(S.qd.kg?100:1));qdv()}
+function qset(g){$('qv').value=g;qdv()}
+function qok(){qdv();if(S.qd.q<=0)return;addCart(S.qd.id,S.qd.q);$('qm').remove()}
+function addCart(id,q){const i=D.items.find(x=>x.id==id),l=S.cart.find(x=>x.id==id);const kg=isKg(i),n=q||(kg?1000:1);l?l.q+=n:S.cart.push({id,n:i.name,p:i.price,c:i.cost,q:n,u:kg?'kg':'pc'});$('cb').textContent=S.cart.length;toast('✔ '+i.name)}
+function cartTotal(){return S.cart.reduce((a,l)=>a+ll(l),0)}
+function cartInner(){if(!S.cart.length)return `<p class=sm>${t('cartEmpty')}</p>`;
+ const sub=cartTotal(),tot=Math.max(0,sub-S.disc);
+ return `<div class="box sc"><table><tr><th></th><th>${t('unit')}</th><th>${t('qty')}</th><th>${t('total')}</th><th></th></tr>
+ ${S.cart.map((l,k)=>`<tr><td>${esc(l.n)}</td><td><input style="width:80px" type=number step=0.01 value="${l.p}" onchange="S.cart[${k}].p=+this.value;r()">${l.u=='kg'?'<span class=sm>DH/kg</span>':''}</td>
+ <td>${l.u=='kg'?`<button class=btn onclick="qty(${k},-1)">−</button> <input style="width:72px" type=number value="${l.q}" onchange="S.cart[${k}].q=+this.value||0;if(!S.cart[${k}].q)S.cart.splice(${k},1);r()"> g <button class=btn onclick="qty(${k},1)">+</button>`:`<button class=btn onclick="qty(${k},-1)">−</button> ${l.q} <button class=btn onclick="qty(${k},1)">+</button>`}</td><td>${dh(ll(l))}</td>
+ <td><button class="btn r" onclick="S.cart.splice(${k},1);r()">✕</button></td></tr>`).join('')}</table></div>
+ <div class=box><label>${t('shop')}</label><input value="${esc(shop())}" onchange="localStorage.b_shop=this.value">
+ <label>${t('seller')}</label>${isA()?`<select onchange="S.seller=this.value">${D.users.map(u=>`<option value="${esc(u.username)}" ${(S.seller||S.user.username)==u.username?'selected':''}>${esc(u.name)}</option>`).join('')}</select>`:`<input value="${esc(S.user.name)}" disabled>`}<label>${t('client')}</label><input value="${esc(S.client)}" onchange="S.client=this.value">
+ <label>${t('discount')} (DH)</label><input type=number step=0.01 value="${S.disc}" onchange="S.disc=+this.value||0;r()">
+ <h2>${t('total')}: ${dh(tot)}</h2><button class="btn p" style="width:100%;font-size:18px;padding:14px" onclick="validate()">💰 ${t('cashier')} — ${dh(tot)}</button></div>`}
+function qty(k,d){const l=S.cart[k];l.q+=d*(l.u=='kg'?100:1);if(l.q<1)S.cart.splice(k,1);r()}
+async function validate(){const sub=cartTotal(),total=Math.max(0,sub-S.disc),cost=S.cart.reduce((a,l)=>a+lc(l),0);
+ const no=D.sales.reduce((m,s)=>Math.max(m,s.no),0)+1,su=(isA()&&D.users.find(u=>u.username==S.seller))||S.user;
+ const s={no,date:new Date().toISOString(),day:today(),client:S.client||'-',lines:S.cart.map(l=>({id:l.id,n:l.n,q:l.q,p:l.p,c:l.c,u:l.u})),sub,disc:S.disc,total,profit:total-cost,user:su.username,sellerName:su.name,shop:shop()};
+ await put('sales',s);for(const l of S.cart)await adj(l.id,-(l.u=='kg'?l.q/1000:l.q));S.cart=[];S.disc=0;S.client='';S.seller=null;S.cartOpen=false;r();showInv(s)}
+const PHONES='0665813741 / 0656548113';
+function invHTML(s){const rtl=S.lang=='ar',a=rtl?'right':'left',e=rtl?'left':'right',bd='border-bottom:1px solid #ccc';
+ return `<div dir="${rtl?'rtl':'ltr'}" style="font-family:Arial,sans-serif;color:#000;background:#fff;padding:8px">
+ <div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #1565c0;padding-bottom:10px">
+ <img src="${LOGO}" style="width:84px;height:84px;border-radius:50%">
+ <div style="flex:1;text-align:${a}"><div style="font-size:24px;font-weight:700;color:#1565c0">${esc(s.shop||shop())}</div><div style="font-size:14px;margin-top:4px">📞 ${PHONES}</div></div>
+ <div style="text-align:${e}"><div style="font-size:22px;font-weight:700">${t('invoice')}</div><div>N° ${String(s.no).padStart(5,'0')}</div><div style="font-size:13px">${new Date(s.date).toLocaleString()}</div></div></div>
+ <p style="margin:12px 0;text-align:${a}">${t('client')}: <b>${esc(s.client)}</b><br>${t('seller')}: <b>${esc(sname(s))}</b></p>
+ <table style="width:100%;border-collapse:collapse;font-size:14px"><tr style="background:#1565c0;color:#fff"><th style="padding:7px;text-align:${a}">${t('name')}</th><th>${t('qty')}</th><th>${t('unit')}</th><th style="text-align:${e};padding:7px">${t('total')}</th></tr>
+ ${s.lines.map(l=>`<tr><td style="padding:7px;text-align:${a};${bd}">${esc(l.n)}</td><td style="text-align:center;${bd}">${l.u=='kg'?l.q+' g':l.q}</td><td style="text-align:center;${bd}">${dh(l.p)}${l.u=='kg'?'/kg':''}</td><td style="padding:7px;text-align:${e};${bd}">${dh(ll(l))}</td></tr>`).join('')}</table>
+ <div style="text-align:${e};margin-top:12px;font-size:15px">${s.disc?`<div>${t('discount')}: -${dh(s.disc)}</div>`:''}<div style="font-size:20px;font-weight:700;color:#1565c0">${t('total')}: ${dh(s.total)}</div></div>
+ <p style="text-align:center;margin-top:26px;font-size:13px;color:#555">${t('thanks')}<br>📞 ${PHONES}</p></div>`}
+const embedded=(()=>{try{return self!==top}catch(e){return true}})();
+function loadLib(url,ok){return ok()?Promise.resolve():new Promise((res,rej)=>{const e=document.createElement('script');e.src=url;e.onload=()=>ok()?res():rej(Error('lib'));e.onerror=()=>rej(Error('lib'));document.head.appendChild(e)})}
+function printInv(s){try{$('inv').innerHTML=invHTML(s);setTimeout(()=>{try{print()}catch(e){toast('Impression bloquée : '+e.message,5000)}},200)}catch(e){toast('Impression : '+e.message,5000)}}
+function showInv(s){const m=document.createElement('div');m.className='modal';m.id='ivm';m.style.zIndex=30;
+ m.innerHTML=`<div class=box style="max-width:640px"><div style="background:#fff;border:1px solid var(--l);border-radius:8px;padding:8px;overflow:auto">${invHTML(s)}</div>
+ ${embedded?`<p class=sm style="color:var(--r)">⚠ ${t('embed')} <a href="${location.href}" target="_blank">↗</a></p>`:''}
+ <div class=row style="margin-top:10px"><button class="btn p" id=ib1>🖨 ${t('print')}</button><button class="btn p" id=ib2>⬇ PDF</button><button class=btn id=ib3>✕ ${t('close')}</button></div></div>`;
+ document.body.appendChild(m);$('ib1').onclick=()=>printInv(s);$('ib2').onclick=()=>pdfInv(s);$('ib3').onclick=()=>m.remove()}
+async function pdfInv(s){let d;try{toast('PDF…',2000);
+ await loadLib('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',()=>window.html2canvas);
+ await loadLib('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',()=>window.jspdf);
+ d=document.createElement('div');d.style.cssText='position:fixed;left:-9999px;top:0;width:720px;background:#fff;padding:20px';d.innerHTML=invHTML(s);document.body.appendChild(d);
+ await new Promise(r=>setTimeout(r,150));
+ const c=await html2canvas(d,{scale:2,backgroundColor:'#ffffff'});d.remove();d=null;
+ const pdf=new jspdf.jsPDF('p','mm','a4'),W=190,H=c.height*W/c.width,PH=277,img=c.toDataURL('image/jpeg',.92),name='facture_'+String(s.no).padStart(5,'0')+'.pdf';
+ pdf.addImage(img,'JPEG',10,10,W,H);for(let off=PH;off<H;off+=PH){pdf.addPage();pdf.addImage(img,'JPEG',10,10-off,W,H)}
+ const blob=pdf.output('blob'),file=new File([blob],name,{type:'application/pdf'});
+ if(/Android|iPhone|iPad/i.test(navigator.userAgent)&&navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file],title:name});return}catch(e){if(e.name=='AbortError')return}}
+ const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(u)},4000);toast('✔ '+name,2500)
+ }catch(err){if(d)d.remove();toast('PDF impossible : '+err.message+(embedded?' — '+t('embed'):''),6000)}}
+
+/* ---------- Rapport (admin) ---------- */
+function repData(){const L=D.sales.filter(s=>s.day>=S.from&&s.day<=S.to).sort((a,b)=>a.date<b.date?1:-1),g={};
+ L.forEach(s=>{const x=g[s.day]=g[s.day]||{n:0,t:0,b:0};x.n++;x.t+=s.total;x.b+=s.profit});const sv={};L.forEach(s=>{const k=s.user||'-',x=sv[k]=sv[k]||{name:sname(s),n:0,t:0,b:0};x.n++;x.t+=s.total;x.b+=s.profit});return{L,g,sv}}
+function repView(){const{L,g,sv}=repData(),days=Object.keys(g).sort().reverse(),T=L.reduce((a,s)=>a+s.total,0),B=L.reduce((a,s)=>a+s.profit,0);
+ return `<h2>📊 ${t('report')}</h2><div class=row><div><label>${t('from')}</label><input type=date value="${S.from}" onchange="S.from=this.value;r()"></div><div><label>${t('to')}</label><input type=date value="${S.to}" onchange="S.to=this.value;r()"></div></div>
+ <div class=row><div class=box><span class=sm>${t('total')}</span><h2>${dh(T)}</h2></div><div class=box><span class=sm>${t('profit')}</span><h2 class=g>${dh(B)}</h2></div></div>
+ <button class="btn p" onclick="xl()">⬇ ${t('export')}</button>
+ <div class="box sc"><table><tr><th>${t('day')}</th><th>${t('nb')}</th><th>${t('total')}</th><th>${t('profit')}</th></tr>${days.map(d=>`<tr><td>${d}</td><td>${g[d].n}</td><td>${dh(g[d].t)}</td><td class=g>${dh(g[d].b)}</td></tr>`).join('')}</table></div>
+ <h3>👤 ${t('perf')}</h3><div class="box sc"><table><tr><th>${t('seller')}</th><th>${t('nb')}</th><th>${t('ca')}</th><th>${t('profit')}</th><th>%</th></tr>${Object.values(sv).sort((a,b)=>b.t-a.t).map(v=>`<tr><td>${esc(v.name)}</td><td>${v.n}</td><td><b>${dh(v.t)}</b></td><td class=g>${dh(v.b)}</td><td>${T?Math.round(v.t/T*100):0}%</td></tr>`).join('')||`<tr><td class=sm>${t('empty')}</td></tr>`}</table></div><h3>${t('history')}</h3><div class="box sc"><table>${L.map(s=>`<tr><td>N°${s.no}</td><td>${esc(s.client)}<br><span class=sm>${esc(sname(s))}</span></td><td>${dh(s.total)}</td><td><button class=btn onclick="showInv(D.sales.find(x=>x.id=='${s.id}'))">🧾</button> <button class="btn r" onclick="delSale('${s.id}')">🗑</button></td></tr>`).join('')}</table></div>`}
+function delSale(id){const sl=D.sales.find(x=>x.id==id);ask(t('sure'),async()=>{if(sl)for(const l of sl.lines)if(l.id)await adj(l.id,l.u=='kg'?l.q/1000:l.q);await rm('sales',id);r()})}
+function xl(){const{L,g,sv}=repData(),w=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(Object.keys(g).sort().map(d=>({Date:d,Ventes:g[d].n,Total:g[d].t,Benefice:g[d].b}))),'Par jour');
+ XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(L.flatMap(s=>s.lines.map(l=>({Date:s.day,Facture:s.no,Client:s.client,Article:l.n,Qte:l.q,Unite:l.u=='kg'?'g':'pc',PU:l.p,Revient:l.c,Total:ll(l),Benefice:ll(l)-lc(l),Vendeur:sname(s)})))),'Detail');
+ XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(Object.values(sv).map(v=>({Vendeur:v.name,Ventes:v.n,Chiffre_affaires:v.t,Benefice:v.b}))),'Vendeurs');XLSX.writeFile(w,`rapport_${S.from}_${S.to}.xlsx`)}
+
+/* ---------- Utilisateurs (admin) ---------- */
+function usrView(){return `<h2>👥 ${t('users')}</h2><div class=box><input id=nn placeholder="${t('full')}"><input id=nu placeholder="${t('user')}" autocapitalize=off><input id=np type=password placeholder="${t('pass')}">
+ <select id=nr><option value=seller>${t('seller')}</option><option value=admin>${t('admin')}</option></select><button class="btn p" onclick="addUser()">➕ ${t('add')}</button></div>
+ <div class=box><table>${D.users.map(u=>`<tr><td>${esc(u.name)}<br><span class=sm>${esc(u.username)}</span></td><td>${t(u.role=='admin'?'admin':'seller')}</td><td>${u.id==S.user.id?'':`<button class="btn r" onclick="delUser('${u.id}')">🗑</button>`}</td></tr>`).join('')}</table></div>`}
+async function addUser(){const u=$('nu').value.trim().toLowerCase(),p=$('np').value;if(!u||p.length<4||D.users.some(x=>x.username==u))return alert('?');
+ await put('users',{username:u,name:$('nn').value||u,role:$('nr').value,hash:await hash(p)});r()}
+function delUser(id){ask(t('sure'),async()=>{await rm('users',id);r()})}
+
+/* ---------- Stock ---------- */
+async function adj(id,d,force){const i=D.items.find(x=>x.id==id);if(!i||(!force&&typeof i.stock!='number'))return;i.stock=Math.round(((i.stock||0)+d)*1000)/1000;
+ if(useFB)await db.collection('items').doc(id).update({stock:firebase.firestore.FieldValue.increment(d)});else localStorage.b_items=JSON.stringify(D.items)}
+async function patch(id,o){const i=D.items.find(x=>x.id==id);Object.assign(i,o);if(useFB)await db.collection('items').doc(id).update(o);else localStorage.b_items=JSON.stringify(D.items)}
+async function setStock(id,v){if(v==='')return;await patch(id,{stock:+v});toast('✔')}
+async function setMin(id,v){await patch(id,{min:+v||0});toast('✔')}
+async function addStock(id){const v=+$('ad'+id).value;if(!v)return;await adj(id,v,true);toast('✔ +'+v);r()}
+function stkView(){const q=(S.sq||'').toLowerCase(),c=S.sc||'',u=i=>isKg(i)?'kg':t('pcs');
+ const L=D.items.filter(i=>(!c||i.cat==c)&&i.name.toLowerCase().includes(q)).sort((a,b)=>a.cat==b.cat?a.name.localeCompare(b.name):a.cat<b.cat?-1:1);
+ return `<h2>📦 ${t('stock')}</h2><div class=row><select onchange="S.sc=this.value;r()"><option value="">${t('all')}</option>${CATS.map(x=>`<option value="${x.id}" ${c==x.id?'selected':''}>${lab(x)}</option>`).join('')}</select><input placeholder="🔍" value="${esc(S.sq||'')}" onchange="S.sq=this.value;r()"></div>
+ <div class="box sc"><table><tr><th>${t('name')}</th><th>${t('stock')}</th><th>${t('add')}</th><th>Min</th></tr>
+ ${L.map(i=>{const tr=typeof i.stock=='number',low=tr&&i.stock<=(i.min||0);return `<tr><td>${i.img?`<img src="${i.img}" style="width:34px;height:34px;object-fit:cover;border-radius:6px;vertical-align:middle"> `:''}${esc(i.name)}<br><span class=sm>${lab(CATS.find(x=>x.id==i.cat))}</span></td>
+ <td><input style="width:84px;${low?'border-color:var(--r);color:var(--r)':''}" type=number step=any inputmode=decimal value="${tr?i.stock:''}" placeholder="—" onchange="setStock('${i.id}',this.value)"> ${u(i)}</td>
+ <td><input style="width:70px" type=number step=any inputmode=decimal id="ad${i.id}" placeholder="+"><button class=btn onclick="addStock('${i.id}')">➕</button></td>
+ <td><input style="width:60px" type=number step=any value="${i.min||''}" onchange="setMin('${i.id}',this.value)"></td></tr>`}).join('')||`<tr><td class=sm>${t('empty')}</td></tr>`}</table></div>`}
+let rt;function listen(){if(!useFB)return;['items','sales','users'].forEach(c=>db.collection(c).onSnapshot(sn=>{D[c]=sn.docs.map(d=>d.data());clearTimeout(rt);rt=setTimeout(()=>{const a=document.activeElement;if(S.user&&!document.querySelector('.modal')&&!(a&&a.tagName=='INPUT'))r()},400)}))}
+/* ---------- Rendu ---------- */
+function r(){const y=scrollY;document.documentElement.dir=S.lang=='ar'?'rtl':'ltr';document.documentElement.lang=S.lang=='ar'?'ar':'fr';
+ if(!D.users.length)return $('app').innerHTML=authBox(true);if(!S.user)return $('app').innerHTML=authBox(false);
+ if(!['cat','home'].includes(S.view)&&!isA())S.view='home';
+ $('app').innerHTML=hdr()+'<main>'+({home:homeView,cat:catView,stk:stkView,rep:repView,usr:usrView}[S.view])()+'</main>'+(S.cartOpen?cartPanel():'');scrollTo(0,y)}
+(async()=>{try{if(useFB){firebase.initializeApp(FB);db=firebase.firestore();try{await firebase.auth().signInAnonymously()}catch(e){console.warn(e)}}
+ await loadAll();listen();if('serviceWorker' in navigator&&(location.protocol=='https:'||location.hostname=='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});const id=sessionStorage.b_sess;S.user=D.users.find(u=>u.id==id)||null}catch(e){alert('Firebase: '+e.message)}r()})();
+</script></body></html>
