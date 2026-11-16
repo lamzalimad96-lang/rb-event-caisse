@@ -1,0 +1,13 @@
+RB EVENT - application web (PWA) pour Firebase Hosting
+
+1) Console Firebase : creer le projet, activer Firestore et Authentication > Anonyme.
+2) Parametres du projet > Vos applications > Web : copier la config et la coller
+   dans public/index.html, dans l'objet FB (en haut du script).
+3) Dans le dossier rb-event :
+     npm install -g firebase-tools
+     firebase login
+     firebase init   (choisir le projet, garder firebase.json existant)
+     firebase deploy
+4) Ouvrir l'adresse https://VOTRE-PROJET.web.app puis "Ajouter a l'ecran d'accueil"
+   pour installer l'application avec l'icone RB EVENTS.
+5) Au premier lancement, creer le compte Admin.
