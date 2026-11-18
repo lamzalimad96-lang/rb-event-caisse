@@ -491,7 +491,7 @@ function addCart(id,q){const i=itemOf(id),l=S.cart.find(x=>x.id==id),kg=isKg(i),
 function cartTotal(){return S.cart.reduce((a,l)=>a+ll(l),0)}
 function discAmt(sub){return Math.min(sub,Math.max(0,S.discP?sub*S.disc/100:S.disc))}
 function findClient(n){n=String(n||'').trim().toLowerCase();return n?D.clients.find(c=>c.name.trim().toLowerCase()==n):null}
-function clearCart(){if(!S.cart.length)return;ask(L('Vider le panier ?','تخوي السلة؟'),()=>{S.cart=[];S.disc=0;S.recv='';S.adv='';rc()},L('Vider','خوي'))}
+function clearCart(){if(!S.cart.length)return;ask(L('Vider le panier ?','تخوي السلة؟'),()=>{S.ordFrom=null;S.cart=[];S.disc=0;S.recv='';S.adv='';rc()},L('Vider','خوي'))}
 function qty(k,d){const l=S.cart[k];l.q+=d*(l.u=='kg'?50:1);if(l.q<=0)S.cart.splice(k,1);rc()}
 function setQ(k,v){const q=num(v);if(q<=0)S.cart.splice(k,1);else S.cart[k].q=q;rc()}
 function lineHTML(l,k){const kg=l.u=='kg';return `<div class=cl><div class=cn><b title="${esc(l.n)}">${esc(l.n)}</b><span class="sm mut"><input class=pin type=number step=0.01 inputmode=decimal value="${l.p}" onchange="S.cart[${k}].p=num(this.value);rc()"> DH${kg?'/kg':''}</span></div><div class=ct>${dh(ll(l))}</div>
@@ -514,7 +514,9 @@ function cartView(){const sub=cartTotal(),disc=discAmt(sub),tot=Math.max(0,sub-d
   <div class=seg>${Object.keys(PAY).map(k=>`<button class="${S.pay==k?'on':''}" onclick="S.pay='${k}';rc()">${PAY[k][0]}<small>${L(PAY[k][1],PAY[k][2])}</small></button>`).join('')}</div>
   ${S.pay=='cash'?`<div class=frow><label>💵</label><input id=crecv type=number step=0.01 inputmode=decimal value="${S.recv}" placeholder="${L('Montant reçu du client','المبلغ اللي عطا الكليان')}" oninput="S.recv=this.value;$('chg').innerHTML=chgHTML()"></div><div id=chg>${chgHTML()}</div>`:''}
   ${S.pay=='credit'?`<div class=frow><label>💵</label><input id=cadv type=number step=0.01 inputmode=decimal value="${S.adv}" placeholder="${L('Avance payée maintenant (DH)','التسبيق دابا (DH)')}" oninput="S.adv=this.value"></div>${cl?`<div class="sm warn" style="margin-inline-start:30px">${L('Reste sur le compte','يبقى ف الحساب')} : ${dh(Math.max(0,tot-num(S.adv)))}</div>`:`<div class="sm bad">⚠ ${L('Sélectionnez ou créez un client (➕) pour vendre à crédit','ختار ولا زيد كليان باش تبيع بالكريدي')}</div>`}`:''}
+  ${S.ordFrom&&D.orders.find(x=>x.id==S.ordFrom)?(o=>`<div class="sm warn" style="margin:6px 0;padding:8px 10px;background:var(--warn-s);border-radius:10px">📅 ${L('Commande de','طلبية ديال')} <b>${esc(o.client)}</b>${o.adv?`<br>${L('Avance déjà versée','التسبيق المخلص')} : <b>${dh(o.adv)}</b><br>${L('Reste à encaisser','باقي للقبض')} : <b>${dh(ordRest(o))}</b>`:''}</div>`)(D.orders.find(x=>x.id==S.ordFrom)):''}
   <button class="btn p pay" ${n?'':'disabled'} onclick="validate()">💰 ${t('cashier')} — ${dh(tot)}</button>
+  ${n&&!S.ordFrom?`<button class=btn style="width:100%;margin-top:6px" onclick="cartToOrder()">📅 ${L('Mettre en commande à venir','دير طلبية جاية')}</button>`:''}
  </div></div>`}
 let busy=false;
 async function validate(){if(busy)return;if(!S.cart.length)return toast(t('cartEmpty'));
@@ -525,8 +527,8 @@ async function validate(){if(busy)return;if(!S.cart.length)return toast(t('cartE
  busy=true;try{
   const no=D.sales.reduce((m,s)=>Math.max(m,s.no||0),0)+1,su=(isA()&&D.users.find(u=>u.username==S.seller))||S.user;
   const s={no,date:new Date().toISOString(),day:today(),client:cl?cl.name:(S.client.trim()||'-'),clientId:cl?cl.id:'',lines:S.cart.map((l,k)=>({k,id:l.id,n:l.n,q:l.q,p:l.p,c:l.c,u:l.u,cat:l.cat||(itemOf(l.id)||{}).cat||''})),sub:r2(sub),disc,total,profit:r2(total-cost),pay:S.pay,paid,recv,change,user:su.username,sellerName:su.name,shop:shop()};
-  await put('sales',s);for(const l of S.cart)await adj(l.id,-(l.u=='kg'?l.q/1000:l.q));
-  S.cart=[];S.disc=0;S.discP=false;S.client='';S.seller=null;S.recv='';S.adv='';S.pay='cash';S.cartOpen=false;r();showInv(s)
+  const oo=S.ordFrom?D.orders.find(x=>x.id==S.ordFrom):null;if(oo)s.advOrder=oo.adv||0;await put('sales',s);if(oo){oo.status='done';oo.doneAt=new Date().toISOString();oo.saleNo=no;await put('orders',oo)}for(const l of S.cart)await adj(l.id,-(l.u=='kg'?l.q/1000:l.q));
+  S.cart=[];S.disc=0;S.discP=false;S.client='';S.seller=null;S.recv='';S.adv='';S.pay='cash';S.cartOpen=false;S.ordFrom=null;r();showInv(s)
  }catch(e){toast(e.message,4000)}finally{busy=false}}
 
 /* ---------- Factures / impression ---------- */
@@ -682,51 +684,63 @@ function delExp(id){ask(t('sure'),async()=>{await rm('expenses',id);r()})}
 
 
 /* ---------- Commandes à venir ---------- */
-S.ordF='up';S.od={};
+S.ordF='up';S.ordFrom=null;
 const ordTs=o=>new Date(o.pday+'T'+(o.ptime||'00:00')).getTime();
 const ordOver=o=>o.status!='done'&&ordTs(o)<Date.now();
 const ordRest=o=>Math.max(0,r2((o.total||0)-(o.adv||0)));
-function ordSet(k,v){S.od[k]=v}
+const ordPay=o=>ordRest(o)<=0.001?['ok','✔ '+L('Payée','مخلصة')]:(o.adv>0?['warn','◐ '+L('Acompte versé','تسبيق مخلص')]:['bad','✖ '+L('Non payée','ما مخلصاش')]);
+const ordQ=l=>l.u=='kg'?(Math.round(l.q)/1000)+' kg':l.q+' '+t('pcs');
 V.ord=function(){
- const td=today(),all=D.orders,pend=all.filter(o=>o.status!='done'),tdn=pend.filter(o=>o.pday==td),over=pend.filter(ordOver),F=S.ordF,d=S.od;
- if(d.pday==null)d.pday=td;
+ const td=today(),all=D.orders,pend=all.filter(o=>o.status!='done'),tdn=pend.filter(o=>o.pday==td),over=pend.filter(ordOver),F=S.ordF;
  let A=F=='up'?pend:F=='td'?tdn:F=='late'?over:F=='done'?all.filter(o=>o.status=='done'):[...all];
  A=[...A].sort((a,b)=>F=='done'?ordTs(b)-ordTs(a):ordTs(a)-ordTs(b));
  const chip=(k,l,n)=>`<button class="${F==k?'on':''}" onclick="S.ordF='${k}';r()">${l}${n!=null?` <span class=pill>${n}</span>`:''}</button>`;
- return `<div class=card><h3>${d.id?'✏️ '+L('Modifier la commande','تعديل الطلبية'):'➕ '+L('Nouvelle commande','طلبية جديدة')}</h3>
- <div class=row><div style="flex:2"><label>${t('client')}</label><input id=ordc list=ordcl value="${esc(d.client||'')}" oninput="ordSet('client',this.value)" placeholder="${L('Nom du client','سمية الكليان')}"><datalist id=ordcl>${D.clients.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist></div>
- <div><label>${L('Téléphone','الهاتف')}</label><input id=ordp type=tel inputmode=tel value="${esc(d.phone||'')}" oninput="ordSet('phone',this.value)"></div></div>
- <label>${L('Commande (détails)','الطلبية (التفاصيل)')}</label><textarea id=ordd rows=2 oninput="ordSet('desc',this.value)" placeholder="${L('ex : 2 gâteaux anniversaire + 5 kg dragées','مثال: 2 كيك + 5 كيلو دراجي')}">${esc(d.desc||'')}</textarea>
- <div class=row><div><label>${L('Date de récupération','تاريخ الاستلام')}</label><input id=ordj type=date value="${d.pday}" onchange="ordSet('pday',this.value)"></div>
- <div><label>${L('Heure','الوقت')}</label><input id=ordh type=time value="${d.ptime||''}" onchange="ordSet('ptime',this.value)"></div></div>
- <div class=row><div><label>${L('Montant total (DH)','المبلغ الإجمالي')}</label><input id=orda type=number step=0.01 inputmode=decimal value="${d.total??''}" oninput="ordSet('total',this.value)"></div>
- <div><label>${L('Avance versée (DH)','التسبيق')}</label><input id=ordv type=number step=0.01 inputmode=decimal value="${d.adv??''}" oninput="ordSet('adv',this.value)"></div></div>
- <label>${L('Note','ملاحظة')}</label><input id=ordn value="${esc(d.note||'')}" oninput="ordSet('note',this.value)">
- <div class=row><button class="btn p" onclick="saveOrd()">💾 ${t('save')}</button>${d.id?`<button class=btn onclick="S.od={};r()">${t('cancel')}</button>`:''}</div></div>
- <div class=kpis style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin:0 0 12px">${kpi(L('À venir','القادمة'),pend.length)}${kpi(L("Aujourd'hui",'اليوم'),tdn.length,tdn.length?'warn':'')}${kpi(L('En retard','متأخرة'),over.length,over.length?'bad':'')}${kpi(L('Reste à encaisser','باقي للقبض'),dh(sum(pend,ordRest)),'ok')}</div>
- <div class=chips>${chip('up',L('À venir','القادمة'),pend.length)}${chip('td',L("Aujourd'hui",'اليوم'),tdn.length)}${chip('late',L('En retard','متأخرة'),over.length)}${chip('done',L('Récupérées','تسلّمات'))}${chip('all',L('Toutes','الكل'))}</div>
- <div class="card sc" style="padding:6px 10px"><table class=tbl><thead><tr><th>${L('Récupération','الاستلام')}</th><th>${t('client')}</th><th>${L('Montant','المبلغ')}</th><th></th></tr></thead><tbody>${A.map(o=>`<tr><td class=sm><b>${fday(o.pday)}</b><br>${o.ptime?'🕐 '+esc(o.ptime):''}${o.pday==td&&o.status!='done'?`<br><span class="badge warn">${L("Aujourd'hui",'اليوم')}</span>`:''}${ordOver(o)?`<br><span class="badge bad">⚠ ${L('En retard','متأخرة')}</span>`:''}${o.status=='done'?`<br><span class="badge ok">✔ ${L('Récupérée','تسلّمات')}</span>`:''}</td>
- <td><b>${esc(o.client)}</b>${o.phone?`<br><a class=sm href="tel:${esc(o.phone)}">📞 ${esc(o.phone)}</a>`:''}${o.desc?`<br><span class="sm mut">${esc(o.desc)}</span>`:''}${o.note?`<br><span class="sm mut">📝 ${esc(o.note)}</span>`:''}</td>
- <td><b>${dh(o.total)}</b>${o.adv?`<br><span class="sm mut">${L('Avance','التسبيق')} : ${dh(o.adv)}</span>`:''}<br><span class="sm ${o.status=='done'?'ok':'bad'}">${o.status=='done'?L('Soldée','مخلصة'):L('Reste','الباقي')+' : '+dh(ordRest(o))}</span></td>
- <td class=act>${o.status=='done'?`<button class=ib onclick="undoOrd('${o.id}')" title="${L('Rouvrir','إعادة فتح')}">↩</button>`:`<button class=ib onclick="doneOrd('${o.id}')" title="${L('Marquer récupérée','تم الاستلام')}">✔</button><button class=ib onclick="editOrd('${o.id}')">✏️</button>`}${isA()?`<button class="ib dng" onclick="delOrd('${o.id}')">🗑</button>`:''}</td></tr>`).join('')||`<tr><td colspan=4 class=empty>${t('empty')}</td></tr>`}</tbody></table></div>`};
-async function saveOrd(){const d=S.od,total=r2(num(d.total)),adv=r2(num(d.adv));
- if(!(d.client||'').trim())return toast(L('Nom du client requis','سمية الكليان ضرورية'));
- if(!d.pday)return toast(L('Date de récupération requise','تاريخ الاستلام ضروري'));
+ const card=o=>{const pay=ordPay(o),done=o.status=='done';return `<div class=card style="margin-bottom:10px;${ordOver(o)?'border-color:var(--bad)':''}">
+ <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b style="font-size:16px">📅 ${fday(o.pday)}${o.ptime?' · 🕐 '+esc(o.ptime):''}</b>${o.pday==td&&!done?`<span class="badge warn">${L("Aujourd'hui",'اليوم')}</span>`:''}${ordOver(o)?`<span class="badge bad">⚠ ${L('En retard','متأخرة')}</span>`:''}${done?`<span class="badge ok">✔ ${L('Récupérée','تسلّمات')}${o.saleNo?' · N° '+pad(o.saleNo):''}</span>`:''}<span style="flex:1"></span><span class="badge ${pay[0]}">${pay[1]}</span></div>
+ <div style="margin:8px 0 4px"><b>${esc(o.client)}</b>${o.phone?` · <a class=sm href="tel:${esc(o.phone)}">📞 ${esc(o.phone)}</a>`:''}</div>
+ ${(o.lines||[]).length?`<div style="margin:6px 0;padding:8px 10px;background:var(--pri-s);border-radius:10px">${o.lines.map(l=>`<div style="display:flex;justify-content:space-between;gap:8px"><span>• ${esc(l.n)}</span><b>${ordQ(l)}</b></div>`).join('')}</div>`:''}
+ ${o.desc?`<div class="sm mut">${esc(o.desc)}</div>`:''}${o.note?`<div class="sm mut">📝 ${esc(o.note)}</div>`:''}
+ <div style="display:flex;gap:14px;flex-wrap:wrap;margin:8px 0"><span>${L('Total','المجموع')} : <b>${dh(o.total)}</b></span>${o.adv?`<span>${L('Avance','التسبيق')} : <b>${dh(o.adv)}</b></span>`:''}${done?'':`<span class="${ordRest(o)>0?'bad':'ok'}">${L('Reste à payer','الباقي للأداء')} : <b>${dh(ordRest(o))}</b></span>`}</div>
+ ${done?'':`<div class=row><button class="btn p" onclick="pickOrd('${o.id}')">🛒 ${L('Remettre / Encaisser','تسليم / قبض')}</button><button class=btn onclick="ordForm('${o.id}')">✏️ ${L('Modifier','تعديل')}</button>${isA()?`<button class="btn r" onclick="delOrd('${o.id}')">🗑</button>`:''}</div>`}
+ ${done&&isA()?`<div class=row><button class="btn r" onclick="delOrd('${o.id}')">🗑</button></div>`:''}</div>`};
+ return `<div class=kpis style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin:0 0 12px">${kpi(L('À préparer','للتحضير'),pend.length)}${kpi(L("Aujourd'hui",'اليوم'),tdn.length,tdn.length?'warn':'')}${kpi(L('En retard','متأخرة'),over.length,over.length?'bad':'')}${kpi(L('Reste à encaisser','باقي للقبض'),dh(sum(pend,ordRest)),'ok')}</div>
+ <div class=chips>${chip('up',L('À préparer','للتحضير'),pend.length)}${chip('td',L("Aujourd'hui",'اليوم'),tdn.length)}${chip('late',L('En retard','متأخرة'),over.length)}${chip('done',L('Récupérées','تسلّمات'))}${chip('all',L('Toutes','الكل'))}</div>
+ <div class="sm mut" style="margin:0 0 10px">💡 ${L("Pour créer une commande : ajoutez les articles au panier de la Caisse puis touchez « Mettre en commande ».",'باش دير طلبية: زيد السلع للسلة ف الكاسة وضغط على « دير طلبية ».')}</div>
+ ${A.map(card).join('')||`<div class="card empty">${t('empty')}</div>`}`};
+function cartToOrder(){if(!S.cart.length)return toast(t('cartEmpty'));ordForm(null)}
+function ordForm(id){const o=id?D.orders.find(x=>x.id==id):null,cl=findClient(S.client);if(id&&!o)return;
+ const v=o||{client:S.client,phone:cl?cl.phone||'':'',pday:today(),ptime:'',adv:'',note:''},sub=cartTotal(),tot=o?o.total:r2(Math.max(0,sub-discAmt(sub)));
+ modalEl(`<div class=box><h3 style="margin-top:0">📅 ${o?L('Modifier la commande','تعديل الطلبية'):L('Mettre en commande à venir','طلبية جاية')}</h3>
+ <div style="font-size:18px;margin-bottom:8px">${L('Montant','المبلغ')} : <b>${dh(tot)}</b>${o?'':` <span class="sm mut">(${S.cart.length} ${L('article(s)','سلعة')})</span>`}</div>
+ <label>${t('client')} *</label><input id=ofc list=ofcl value="${esc(v.client||'')}" autocomplete=off><datalist id=ofcl>${D.clients.map(c=>`<option value="${esc(c.name)}">${esc(c.phone||'')}</option>`).join('')}</datalist>
+ <label>${L('Téléphone','الهاتف')}</label><input id=ofp type=tel inputmode=tel value="${esc(v.phone||'')}">
+ <div class=row><div><label>${L('Date de récupération','تاريخ الاستلام')} *</label><input id=ofd type=date value="${v.pday}"></div><div><label>${L('Heure','الوقت')}</label><input id=oft type=time value="${v.ptime||''}"></div></div>
+ <label>${L('Avance versée maintenant (DH)','التسبيق المخلص دابا')}</label><input id=ofa type=number step=0.01 inputmode=decimal value="${v.adv||''}" placeholder="0">
+ <label>${L('Note','ملاحظة')}</label><input id=ofn value="${esc(v.note||'')}">
+ <div class=row><button class=btn onclick="closeM('ordm')">${t('cancel')}</button><button class="btn p" onclick="saveOrdForm('${id||''}')">💾 ${t('save')}</button></div></div>`,'ordm')}
+async function saveOrdForm(id){const client=$('ofc').value.trim(),pday=$('ofd').value,adv=r2(num($('ofa').value)),o=id?D.orders.find(x=>x.id==id):null;
+ if(!client)return toast(L('Nom du client requis','سمية الكليان ضرورية'));
+ if(!pday)return toast(L('Date de récupération requise','تاريخ الاستلام ضروري'));
+ const sub=cartTotal(),disc=r2(discAmt(sub)),total=o?o.total:r2(Math.max(0,sub-disc));
  if(total<=0)return toast(L('Montant invalide','المبلغ غالط'));
- if(adv>total)return toast(L("Avance supérieure au montant",'التسبيق كبر من المبلغ'));
- const old=d.id?D.orders.find(x=>x.id==d.id):null;
- await put('orders',{...(old||{}),id:d.id,client:d.client.trim(),phone:(d.phone||'').trim(),desc:(d.desc||'').trim(),pday:d.pday,ptime:d.ptime||'',total,adv,note:(d.note||'').trim(),status:old?old.status:'pending',date:old?old.date:new Date().toISOString(),user:old?old.user:S.user.username,sellerName:old?old.sellerName:S.user.name});
- S.od={};toast('✔ '+dh(total));r()}
-function editOrd(id){const o=D.orders.find(x=>x.id==id);if(!o)return;S.od={id,client:o.client,phone:o.phone,desc:o.desc,pday:o.pday,ptime:o.ptime,total:o.total,adv:o.adv,note:o.note};r();if($('main'))$('main').scrollTop=0}
-function doneOrd(id){const o=D.orders.find(x=>x.id==id);if(!o)return;ask(L('Marquer cette commande comme récupérée ?','واش تسلّمات هاد الطلبية؟'),async()=>{o.status='done';o.doneAt=new Date().toISOString();await put('orders',o);r()},L('Oui','نعم'),true)}
-async function undoOrd(id){const o=D.orders.find(x=>x.id==id);if(!o)return;o.status='pending';delete o.doneAt;await put('orders',o);r()}
+ if(adv>total)return toast(L('Avance supérieure au montant','التسبيق كبر من المبلغ'),3000);
+ const cl=findClient(client),base={client:cl?cl.name:client,clientId:cl?cl.id:'',phone:$('ofp').value.trim(),pday,ptime:$('oft').value,adv,note:$('ofn').value.trim()};
+ if(o){await put('orders',{...o,...base})}
+ else{await put('orders',{...base,status:'pending',day:today(),date:new Date().toISOString(),
+  lines:S.cart.map(l=>({id:l.id,n:l.n,q:l.q,p:l.p,c:l.c,u:l.u,cat:l.cat||(itemOf(l.id)||{}).cat||''})),sub:r2(sub),disc,total,user:S.user.username,sellerName:S.user.name});
+  S.cart=[];S.disc=0;S.discP=false;S.client='';S.recv='';S.adv='';S.pay='cash';S.cartOpen=false;S.ordFrom=null}
+ closeM('ordm');toast('✔ '+L('Commande enregistrée','تسجلات الطلبية'));if(!o)S.ordF='up';go('ord')}
+function pickOrd(id){const o=D.orders.find(x=>x.id==id);if(!o)return;
+ if(!(o.lines||[]).length)return toast(L("Cette commande n'a pas d'articles",'هاد الطلبية ما فيها سلع'),3000);
+ const go2=()=>{S.cart=o.lines.map(l=>({id:l.id,n:l.n,p:l.p,c:l.c,q:l.q,u:l.u,cat:l.cat}));S.client=o.client;S.disc=o.disc||0;S.discP=false;S.pay='cash';S.recv='';S.adv='';S.ordFrom=id;S.cartOpen=true;go('pos')};
+ S.cart.length?ask(L('Le panier actuel sera remplacé par cette commande. Continuer ?','السلة الحالية غتتبدل بهاد الطلبية. تكمل؟'),go2,L('Continuer','كمّل'),true):go2()}
 function delOrd(id){ask(t('sure'),async()=>{await rm('orders',id);r()})}
 
 /* ---------- Clôture de caisse ---------- */
 const DEN=[200,100,50,20,10,5,2,1,0.5];
 function cashDay(d){const sales=D.sales.filter(s=>s.day==d),pays=D.payments.filter(p=>p.day==d),rets=D.returns.filter(x=>x.day==d),exps=D.expenses.filter(x=>x.day==d);
- const cashSales=sum(sales.filter(s=>['cash','credit'].includes(spay(s))),spaid),card=sum(sales.filter(s=>spay(s)=='card'),spaid),tr=sum(sales.filter(s=>spay(s)=='transfer'),spaid);
- const payCash=sum(pays.filter(p=>(p.method||'cash')=='cash'),'amount'),payOther=sum(pays.filter(p=>(p.method||'cash')!='cash'),'amount');
+ const cashSales=sum(sales.filter(s=>['cash','credit'].includes(spay(s))),s=>spaid(s)-(s.advOrder||0)),card=sum(sales.filter(s=>spay(s)=='card'),spaid),tr=sum(sales.filter(s=>spay(s)=='transfer'),spaid);
+ const payCash=sum(pays.filter(p=>(p.method||'cash')=='cash'),'amount')+sum(D.orders.filter(o=>o.day==d),'adv'),payOther=sum(pays.filter(p=>(p.method||'cash')!='cash'),'amount');
  const retCash=sum(rets.filter(x=>x.method=='cash'),'amount'),expCash=sum(exps.filter(x=>(x.method||'cash')=='cash'),'amount');
  const pur=sum(D.purchases.filter(x=>x.day==d&&(x.method||'cash')=='cash'),'paid')+sum(D.spay.filter(x=>x.day==d&&(x.method||'cash')=='cash'),'amount');
  return{n:sales.length,total:sum(sales,'total'),cashSales,card,tr,payCash,payOther,retCash,expCash,pur,credit:sum(sales,s=>s.total-spaid(s)),cin:cashSales+payCash,cout:retCash+expCash+pur}}
