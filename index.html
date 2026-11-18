@@ -200,7 +200,7 @@ const sum=(A,f)=>A.reduce((a,x)=>a+(typeof f=='function'?f(x):(+x[f]||0)),0);
 const r2=n=>Math.round(n*100)/100;
 let _dbt;const deb=(f,ms)=>{clearTimeout(_dbt);_dbt=setTimeout(f,ms||300)};
 
-const COLS=['items','sales','users','clients','payments','suppliers','purchases','spay','expenses','returns','closings'];
+const COLS=['items','sales','users','clients','payments','suppliers','purchases','spay','expenses','returns','closings','orders'];
 const D={};COLS.forEach(c=>D[c]=[]);
 const S={user:null,view:'pos',cat:'all',sub:null,q:'',cart:[],lang:localStorage.b_lang||'fr',theme:localStorage.b_theme||'light',from:today(),to:today(),draft:null,disc:0,discP:false,client:'',pay:'cash',recv:'',adv:'',seller:null,cartOpen:false,nav:false,supTab:'sup',expFrom:today().slice(0,8)+'01',expTo:today(),cloDay:today(),cloFond:localStorage.b_fond||'',cloCnt:'',den:{},invQ:'',stkQ:'',stkC:'',stkLow:false,cq:''};
 
@@ -251,6 +251,7 @@ const VIEWS=[
 {id:'dash',ic:'🏠',fr:'Tableau de bord',ar:'لوحة القيادة',a:1},
 {id:'pos',ic:'🛒',fr:'Caisse',ar:'الكاسة'},
 {id:'inv',ic:'🧾',fr:'Factures',ar:'الفواتير'},
+{id:'ord',ic:'📅',fr:'Commandes',ar:'الطلبيات'},
 {id:'cli',ic:'👤',fr:'Clients & crédits',ar:'الكليان و الكريدي'},
 {id:'clo',ic:'🔒',fr:'Clôture de caisse',ar:'سدان الكاسة'},
 {id:'stk',ic:'📦',fr:'Stock',ar:'المخزون',a:1},
@@ -678,6 +679,48 @@ V.exp=function(){const A=D.expenses.filter(x=>inP(x,S.expFrom,S.expTo)).sort((a,
 async function addExp(){const a=r2(num($('ea').value));if(a<=0)return toast(L('Montant invalide','المبلغ غالط'));const day=$('ed').value||today();
  await put('expenses',{day,date:new Date(day+'T'+new Date().toTimeString().slice(0,8)).toISOString(),cat:$('ec').value,label:$('el').value.trim(),amount:a,method:$('em').value,user:S.user.username,sellerName:S.user.name});toast('✔ '+dh(a));r()}
 function delExp(id){ask(t('sure'),async()=>{await rm('expenses',id);r()})}
+
+
+/* ---------- Commandes à venir ---------- */
+S.ordF='up';S.od={};
+const ordTs=o=>new Date(o.pday+'T'+(o.ptime||'00:00')).getTime();
+const ordOver=o=>o.status!='done'&&ordTs(o)<Date.now();
+const ordRest=o=>Math.max(0,r2((o.total||0)-(o.adv||0)));
+function ordSet(k,v){S.od[k]=v}
+V.ord=function(){
+ const td=today(),all=D.orders,pend=all.filter(o=>o.status!='done'),tdn=pend.filter(o=>o.pday==td),over=pend.filter(ordOver),F=S.ordF,d=S.od;
+ if(d.pday==null)d.pday=td;
+ let A=F=='up'?pend:F=='td'?tdn:F=='late'?over:F=='done'?all.filter(o=>o.status=='done'):[...all];
+ A=[...A].sort((a,b)=>F=='done'?ordTs(b)-ordTs(a):ordTs(a)-ordTs(b));
+ const chip=(k,l,n)=>`<button class="${F==k?'on':''}" onclick="S.ordF='${k}';r()">${l}${n!=null?` <span class=pill>${n}</span>`:''}</button>`;
+ return `<div class=card><h3>${d.id?'✏️ '+L('Modifier la commande','تعديل الطلبية'):'➕ '+L('Nouvelle commande','طلبية جديدة')}</h3>
+ <div class=row><div style="flex:2"><label>${t('client')}</label><input id=ordc list=ordcl value="${esc(d.client||'')}" oninput="ordSet('client',this.value)" placeholder="${L('Nom du client','سمية الكليان')}"><datalist id=ordcl>${D.clients.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist></div>
+ <div><label>${L('Téléphone','الهاتف')}</label><input id=ordp type=tel inputmode=tel value="${esc(d.phone||'')}" oninput="ordSet('phone',this.value)"></div></div>
+ <label>${L('Commande (détails)','الطلبية (التفاصيل)')}</label><textarea id=ordd rows=2 oninput="ordSet('desc',this.value)" placeholder="${L('ex : 2 gâteaux anniversaire + 5 kg dragées','مثال: 2 كيك + 5 كيلو دراجي')}">${esc(d.desc||'')}</textarea>
+ <div class=row><div><label>${L('Date de récupération','تاريخ الاستلام')}</label><input id=ordj type=date value="${d.pday}" onchange="ordSet('pday',this.value)"></div>
+ <div><label>${L('Heure','الوقت')}</label><input id=ordh type=time value="${d.ptime||''}" onchange="ordSet('ptime',this.value)"></div></div>
+ <div class=row><div><label>${L('Montant total (DH)','المبلغ الإجمالي')}</label><input id=orda type=number step=0.01 inputmode=decimal value="${d.total??''}" oninput="ordSet('total',this.value)"></div>
+ <div><label>${L('Avance versée (DH)','التسبيق')}</label><input id=ordv type=number step=0.01 inputmode=decimal value="${d.adv??''}" oninput="ordSet('adv',this.value)"></div></div>
+ <label>${L('Note','ملاحظة')}</label><input id=ordn value="${esc(d.note||'')}" oninput="ordSet('note',this.value)">
+ <div class=row><button class="btn p" onclick="saveOrd()">💾 ${t('save')}</button>${d.id?`<button class=btn onclick="S.od={};r()">${t('cancel')}</button>`:''}</div></div>
+ <div class=kpis style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin:0 0 12px">${kpi(L('À venir','القادمة'),pend.length)}${kpi(L("Aujourd'hui",'اليوم'),tdn.length,tdn.length?'warn':'')}${kpi(L('En retard','متأخرة'),over.length,over.length?'bad':'')}${kpi(L('Reste à encaisser','باقي للقبض'),dh(sum(pend,ordRest)),'ok')}</div>
+ <div class=chips>${chip('up',L('À venir','القادمة'),pend.length)}${chip('td',L("Aujourd'hui",'اليوم'),tdn.length)}${chip('late',L('En retard','متأخرة'),over.length)}${chip('done',L('Récupérées','تسلّمات'))}${chip('all',L('Toutes','الكل'))}</div>
+ <div class="card sc" style="padding:6px 10px"><table class=tbl><thead><tr><th>${L('Récupération','الاستلام')}</th><th>${t('client')}</th><th>${L('Montant','المبلغ')}</th><th></th></tr></thead><tbody>${A.map(o=>`<tr><td class=sm><b>${fday(o.pday)}</b><br>${o.ptime?'🕐 '+esc(o.ptime):''}${o.pday==td&&o.status!='done'?`<br><span class="badge warn">${L("Aujourd'hui",'اليوم')}</span>`:''}${ordOver(o)?`<br><span class="badge bad">⚠ ${L('En retard','متأخرة')}</span>`:''}${o.status=='done'?`<br><span class="badge ok">✔ ${L('Récupérée','تسلّمات')}</span>`:''}</td>
+ <td><b>${esc(o.client)}</b>${o.phone?`<br><a class=sm href="tel:${esc(o.phone)}">📞 ${esc(o.phone)}</a>`:''}${o.desc?`<br><span class="sm mut">${esc(o.desc)}</span>`:''}${o.note?`<br><span class="sm mut">📝 ${esc(o.note)}</span>`:''}</td>
+ <td><b>${dh(o.total)}</b>${o.adv?`<br><span class="sm mut">${L('Avance','التسبيق')} : ${dh(o.adv)}</span>`:''}<br><span class="sm ${o.status=='done'?'ok':'bad'}">${o.status=='done'?L('Soldée','مخلصة'):L('Reste','الباقي')+' : '+dh(ordRest(o))}</span></td>
+ <td class=act>${o.status=='done'?`<button class=ib onclick="undoOrd('${o.id}')" title="${L('Rouvrir','إعادة فتح')}">↩</button>`:`<button class=ib onclick="doneOrd('${o.id}')" title="${L('Marquer récupérée','تم الاستلام')}">✔</button><button class=ib onclick="editOrd('${o.id}')">✏️</button>`}${isA()?`<button class="ib dng" onclick="delOrd('${o.id}')">🗑</button>`:''}</td></tr>`).join('')||`<tr><td colspan=4 class=empty>${t('empty')}</td></tr>`}</tbody></table></div>`};
+async function saveOrd(){const d=S.od,total=r2(num(d.total)),adv=r2(num(d.adv));
+ if(!(d.client||'').trim())return toast(L('Nom du client requis','سمية الكليان ضرورية'));
+ if(!d.pday)return toast(L('Date de récupération requise','تاريخ الاستلام ضروري'));
+ if(total<=0)return toast(L('Montant invalide','المبلغ غالط'));
+ if(adv>total)return toast(L("Avance supérieure au montant",'التسبيق كبر من المبلغ'));
+ const old=d.id?D.orders.find(x=>x.id==d.id):null;
+ await put('orders',{...(old||{}),id:d.id,client:d.client.trim(),phone:(d.phone||'').trim(),desc:(d.desc||'').trim(),pday:d.pday,ptime:d.ptime||'',total,adv,note:(d.note||'').trim(),status:old?old.status:'pending',date:old?old.date:new Date().toISOString(),user:old?old.user:S.user.username,sellerName:old?old.sellerName:S.user.name});
+ S.od={};toast('✔ '+dh(total));r()}
+function editOrd(id){const o=D.orders.find(x=>x.id==id);if(!o)return;S.od={id,client:o.client,phone:o.phone,desc:o.desc,pday:o.pday,ptime:o.ptime,total:o.total,adv:o.adv,note:o.note};r();if($('main'))$('main').scrollTop=0}
+function doneOrd(id){const o=D.orders.find(x=>x.id==id);if(!o)return;ask(L('Marquer cette commande comme récupérée ?','واش تسلّمات هاد الطلبية؟'),async()=>{o.status='done';o.doneAt=new Date().toISOString();await put('orders',o);r()},L('Oui','نعم'),true)}
+async function undoOrd(id){const o=D.orders.find(x=>x.id==id);if(!o)return;o.status='pending';delete o.doneAt;await put('orders',o);r()}
+function delOrd(id){ask(t('sure'),async()=>{await rm('orders',id);r()})}
 
 /* ---------- Clôture de caisse ---------- */
 const DEN=[200,100,50,20,10,5,2,1,0.5];
